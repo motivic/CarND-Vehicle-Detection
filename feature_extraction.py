@@ -157,7 +157,8 @@ def hog_features(img,
                  orient,
                  pix_per_cell,
                  cell_per_blk,
-                 vis=False):
+                 vis=False,
+                 feature_vector=True):
     """ Calculate Histogram of Oriented Gradients (HOG) as a feature vector.
 
     Args:
@@ -179,7 +180,7 @@ def hog_features(img,
                                 pixels_per_cell=(pix_per_cell, pix_per_cell),
                                 cells_per_block=(cell_per_blk, cell_per_blk),
                                 visualise=vis,
-                                feature_vector=True)
+                                feature_vector=feature_vector)
         return features, hog_img
     else:
         features = hog(img,
@@ -187,5 +188,5 @@ def hog_features(img,
                        pixels_per_cell=(pix_per_cell, pix_per_cell),
                        cells_per_block=(cell_per_blk, cell_per_blk),
                        visualise=vis,
-                       feature_vector=True)
+                       feature_vector=feature_vector)
         return features

@@ -38,11 +38,31 @@ Y_START_STOP = [480, 720]
               help='pickled features data')
 @click.option('--labels_pickle', default='label.pkl',
               help='pickled features data')
-@click.option('--video', default='test_video.mp4',
-              help='pickled features data')
 @click.argument('output_file')
 def train_model(model_type, car, noncar, load_pickles,
-                features_pickle, labels_pickle, video, output_file):
+                features_pickle, labels_pickle, output_file):
+    """ Train a model to recognize cars from images.
+
+    Args:
+        model_type: The kind of model to train, can be "SVC" or "Tree".
+        car: The folder containing training images of cars.
+        noncar: The folder containing training images of non-car things.
+        load_pickles: A flag indicating whether to load pickled training data.
+        features_pickle: The pickled features file.
+        labels_pickle: The pickled labels file.
+        output_file: The model pickle file.
+
+    Returns:
+        The trained model.
+    """
+    model_pickle = {}
+    model_pickle['type'] = model_type
+    model_pickle['color_space'] = COLOR_SPACE
+    model_pickle['orient'] = ORIENT
+    model_pickle['pix_per_cell'] = PIX_PER_CELL
+    model_pickle['cell_per_block'] = CELL_PER_BLOCK
+    model_pickle['spatial_size'] = SPATIAL_SIZE
+    model_pickle['hist_bins'] = HIST_BINS
     if load_pickles == 1:
         with open(features_pickle, 'rb') as infile:
             X = pickle.load(infile)
@@ -90,6 +110,7 @@ def train_model(model_type, car, noncar, load_pickles,
             pickle.dump(y, outfile)
 
     X_scaler = StandardScaler().fit(X)
+    model_pickle['scaler'] = X_scaler
     scaled_X = X_scaler.transform(X)
 
     # Split up data into randomized training and test sets
@@ -100,16 +121,22 @@ def train_model(model_type, car, noncar, load_pickles,
                                                         stratify=y)
     # Train the model
     model = None
+    t = time.time()
     if model_type == 'SVC':
         model = LinearSVC()
-        t = time.time()
         model.fit(X_train, y_train)
-        t2 = time.time()
-        print('Training SCV took {:.2f} seconds...'.format(t2-t))
-        print('Test accuracy of SCV is {:.4f}.'.format(model.score(X_test,
-                                                                   y_test)))
-        with open(output_file, 'wb') as outfile:
-            pickle.dump(model, output_file)
+    elif model_type == 'Tree':
+        model = DecisionTreeClassifier()
+        model.fit(X_train, y_train)
+    t2 = time.time()
+    print('Training SCV took {:.2f} seconds...'.format(t2-t))
+    print('Test accuracy of {} is {:.4f}.'.format(model_type,
+                                                  model.score(X_test,
+                                                              y_test)))
+    # Pickle the model along with parameters.
+    model_pickle['clf'] = model
+    with open(output_file, 'wb') as outfile:
+        pickle.dump(model_pickle, outfile)
     return model
 
 if __name__ == '__main__':
