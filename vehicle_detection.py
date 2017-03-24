@@ -2,10 +2,14 @@
 
 import click
 import cv2
+from collections import deque
+from functools import partial
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+from moviepy.editor import VideoFileClip
 import numpy as np
 import pickle
+from scipy.ndimage.measurements import label
 
 from feature_extraction import bin_spatial, color_hist, hog_features
 from train_model import train_model
@@ -18,32 +22,110 @@ from train_model import train_model
               help='pickled features data')
 @click.argument('output_file')
 def vehicle_detection(model_pickle, video, image, output_file):
-    """
-
-    Args:
-        model_pickle:
-        video:
-        image:
-        output_video:
-
-    Returns:
-
-    """
+    model_pickle = pickle.load(open(model_pickle, 'rb'))
+    clf = model_pickle['clf']
+    X_scaler = model_pickle['scaler']
+    # Identify vehicle in an image.
     if video == None:
-        model_pickle = pickle.load(open(model_pickle, 'rb'))
-        clf = model_pickle['clf']
-        X_scaler = model_pickle['scaler']
         img = mpimg.imread(image)
         windows = []
-        for s in [0.8, 0.9, 1, 1.2, 1.5, 1.8, 2, 2.5]:
+        for s in [0.8, 0.9, 1, 1.2, 1.5, 1.8]:
             windows.extend(find_cars(img, clf=clf, X_scaler=X_scaler,
                                      x_start_stop=(0, 1280),
                                      y_start_stop=(400, 656),
                                      scale=s))
-        for window in windows:
-            cv2.rectangle(img, window[0], window[1], (0, 0, 255), 6)
-        plt.imshow(img)
+        img_boxes = draw_boxes(img, windows)
+        plt.imshow(img_boxes)
         plt.show()
+    # Track vehicle in a video.
+    else:
+        clip = VideoFileClip(video)
+        heatmap = Heatmap(n_frame_avg_over=5, threshold=10)
+        func = partial(process_frame, clf=clf,
+                       X_scaler=X_scaler, heatmap=heatmap)
+        clip_w_boxes = clip.fl_image(func)
+        clip_w_boxes.write_videofile(output_file, audio=False)
+
+def process_frame(img,
+                  clf,
+                  X_scaler,
+                  heatmap):
+    """ A helper function used to detect cars over multiple frames in a video.
+
+    Args:
+        img: The frame image.
+        clf: The model for identifying vehicles.
+        X_scaler: The feature scaler.
+
+    Returns:
+        The image with cars drawn.
+    """
+    windows = []
+    for s in [0.8, 1, 1.2, 1.5, 2, 2.5]:
+        windows.extend(find_cars(img, clf=clf, X_scaler=X_scaler,
+                                 x_start_stop=(0, 1280),
+                                 y_start_stop=(400, 656),
+                                 scale=s))
+    img_boxes = heatmap.draw_label_boxes(img, windows)
+    return img_boxes
+
+class Heatmap:
+
+    def __init__(self, n_frame_avg_over=5, threshold=1):
+        self._n_frame_avg_over = n_frame_avg_over
+        self._threshold = threshold
+        self._frames = []
+        self._windows_queue = deque(maxlen=n_frame_avg_over)
+
+    def draw_label_boxes(self, img, windows):
+        """ Draw boxes over labeled regions.
+
+        Args:
+            img: The original image.
+            windows: The collection of windows identified.
+
+        Returns:
+            The image with boxes drawn around cars.
+        """
+        self._windows_queue.append(windows)
+        self.heatmap = np.zeros_like(img[:,:,0]).astype(np.float)
+        for bbox_list in self._windows_queue:
+            for box in bbox_list:
+                self.heatmap[box[0][1]:box[1][1],
+                             box[0][0]:box[1][0]] += 1
+        # Apply threshold
+        self.heatmap[self.heatmap < self._threshold] = 0
+        labels = label(self.heatmap)
+
+        # Iterate through all detected cars
+        for car_number in range(1, labels[1]+1):
+            # Find pixels with each car_number label value
+            nonzero = (labels[0] == car_number).nonzero()
+            # Identify x and y values of those pixels
+            nonzeroy = np.array(nonzero[0])
+            nonzerox = np.array(nonzero[1])
+            # Define a bounding box based on min/max x and y
+            bbox = ((np.min(nonzerox), np.min(nonzeroy)),
+                    (np.max(nonzerox), np.max(nonzeroy)))
+            # Draw the box on the image
+            cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+        # Return the image
+        return img
+
+def draw_boxes(img, windows):
+    """ Draw windows on the image.
+
+    Args:
+        img: The base image.
+        windows: Coordinates on the image where boxes are.
+
+    Returns:
+        The image with boxes drawn.
+    """
+    image = np.copy(img)
+    for window in windows:
+        cv2.rectangle(image, window[0], window[1], (0, 0, 255), 6)
+    return image
 
 def find_cars(img,
               clf,

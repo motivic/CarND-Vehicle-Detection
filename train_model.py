@@ -7,8 +7,9 @@ import pathlib
 import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import LinearSVC
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.svm import SVC
+from sklearn.ensemble import GradientBoostingClassifier
 import time
 
 from feature_extraction import extract_features
@@ -123,13 +124,23 @@ def train_model(model_type, car, noncar, load_pickles,
     model = None
     t = time.time()
     if model_type == 'SVC':
-        model = LinearSVC()
+        # Use grid search over a hyperparameter space.
+        param_dist = {'C': [0.5, 0.8, 1.0],
+                      'kernel': ['linear', 'rbf']}
+        model = GridSearchCV(SVC(), param_dist, n_jobs=8)
         model.fit(X_train, y_train)
     elif model_type == 'Tree':
-        model = DecisionTreeClassifier()
+        # Use randomized search over a hyperparameter space.
+        param_dist = {'min_samples_split': [5, 10, 20],
+                      'max_depth': [2, 3, 5, 7],
+                      'max_features': [1.0, 'auto', 'log2']}
+        model = RandomizedSearchCV(GradientBoostingClassifier(),
+                                   param_distributions=param_dist,
+                                   n_iter=10,
+                                   n_jobs=8)
         model.fit(X_train, y_train)
     t2 = time.time()
-    print('Training SCV took {:.2f} seconds...'.format(t2-t))
+    print('Training the model took {:.2f} seconds...'.format(t2-t))
     print('Test accuracy of {} is {:.4f}.'.format(model_type,
                                                   model.score(X_test,
                                                               y_test)))
