@@ -26,9 +26,12 @@ The goals / steps of this project are the following:
 [image4d]: ./output_images/out_test4.jpg
 [image4e]: ./output_images/out_test5.jpg
 [image4f]: ./output_images/out_test6.jpg
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
+[image5a]: ./output_images/frame_723.jpg
+[image5b]: ./output_images/frame_800.jpg
+[image5c]: ./output_images/frame_850.jpg
+[image5d]: ./output_images/frame_900.jpg
+[image5e]: ./output_images/frame_945.jpg
+[image5f]: ./output_images/frame_950.jpg
 [video1]: ./project_video.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
@@ -93,16 +96,16 @@ SVM as the model of choice.
 
 I applied sliding window search to detect vehicles, but for a limited range of pixels with y-coordinate between 400 and 656 (`vehicle_detection.py`, 
 [35-36](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L35-L36)). The implementation of the sliding window and feature
-generation is in the function `find_cars` in `vehicle_detection.py`, [lines 156-255](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L156-L255).
+generation is in the function `find_cars` in `vehicle_detection.py`, [lines 158-257](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L158-L257).
 We followed essentially the HOG sub-sampling window search from the course, but using only one color channel for the HOG features. 
 
 Because the featuers need to be of the same size, instead of scaling the windows, I scaled the base image (or video frame) by (1/(0.8), 1, 1/(1.5)),
 and applied the window search algorithm. These scales are chosen by trial and error. See lines [71](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L71) 
-and [191-194](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L191-L194) of `vehicle_detection.py`.
+and [193-196](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L193-L196) of `vehicle_detection.py`.
 
 Instead of defining an overlap, we followed the HOG sub-sampling window search from the course and specified the number of cells to step over
 from each window to the next. We left this parameter at 2, and given that each cell has 8 pixels, this means the neighboring windows are 16 pixels apart
-(after scaling). See [line 205](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L205) of `vehicle_detection.py`
+(after scaling). See [line 207](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L207) of `vehicle_detection.py`
 
 
 ####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
@@ -127,7 +130,7 @@ so they are more likely to be boxed after retraining the model. For now, we will
 ### Video Implementation
 
 ####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](./project_video.mp4).
 
 
 ####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
@@ -140,15 +143,14 @@ to identify vehicle positions. Next I used the function `scipy.ndimage.measureme
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label` and 
 the bounding boxes then overlaid on the last frame of video:
 
-### Here are six frames showing the original image, the heatmap, the vehicle labels, and the image with bounding boxes drawn around the vehicles. 
+### Here are five frames showing the original image, the heatmap, the vehicle labels, and the image with bounding boxes drawn around the vehicles. 
 
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
+![alt text][image5a]
+![alt text][image5b]
+![alt text][image5c]
+![alt text][image5d]
+![alt text][image5e]
+![alt text][image5f]
 
 ---
 

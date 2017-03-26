@@ -44,7 +44,7 @@ def vehicle_detection(model_pickle, video, image, output_file):
         clip = VideoFileClip(video)
         heatmap = Heatmap(n_frame_avg_over=3, threshold=10)
         func = partial(process_frame, clf=clf,
-                       X_scaler=X_scaler, heatmap=heatmap, show_all=True)
+                       X_scaler=X_scaler, heatmap=heatmap, show_all=False)
         clip_w_boxes = clip.fl_image(func)
         clip_w_boxes.write_videofile(output_file, audio=False)
 
@@ -88,8 +88,8 @@ def process_frame(img,
         ax[2].axis('off')
         ax[3].imshow(img_boxes)
         ax[3].axis('off')
-        plt.savefig('show_all_tmp.jpg')
-        return mpimg.imread('show_all_tmp.jpg')
+        plt.savefig('show_all/frame_{}.jpg'.format(heatmap.frame_cnt))
+        return img_boxes
 
 
 class Heatmap:
@@ -99,6 +99,7 @@ class Heatmap:
         self._threshold = threshold
         self._frames = []
         self._windows_queue = deque(maxlen=n_frame_avg_over)
+        self.frame_cnt = 0
 
     def draw_label_boxes(self, img, windows):
         """ Draw boxes over labeled regions.
@@ -133,6 +134,7 @@ class Heatmap:
                     (np.max(nonzerox), np.max(nonzeroy)))
             # Draw the box on the image
             cv2.rectangle(image, bbox[0], bbox[1], (0,0,255), 6)
+        self.frame_cnt += 1
         # Return the image
         return image
 
