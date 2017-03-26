@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import cv2
 import click
 import numpy as np
 import pathlib
 import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from sklearn.svm import SVC
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.svm import LinearSVC
 from sklearn.ensemble import GradientBoostingClassifier
 import time
 
 from feature_extraction import extract_features
 
-COLOR_SPACE = 'RGB'
+COLOR_SPACE = 'YCrCb'
 ORIENT = 9
 PIX_PER_CELL = 8
 CELL_PER_BLOCK = 2
@@ -25,6 +24,7 @@ SPATIAL_FEAT = True
 HIST_FEAT = True
 HOG_FEAT = True
 Y_START_STOP = [480, 720]
+
 
 @click.command()
 @click.option('--model_type', default='SVC',
@@ -79,7 +79,6 @@ def train_model(model_type, car, noncar, load_pickles,
         noncar_imgs = list(p.glob('**/*.png')) + \
                       list(p.glob('**/*.jpg')) + \
                       list(p.glob('**/*.jpeg'))
-
         car_features = extract_features(car_imgs,
                                         color_space=COLOR_SPACE,
                                         spatial_size=SPATIAL_SIZE,
@@ -124,10 +123,7 @@ def train_model(model_type, car, noncar, load_pickles,
     model = None
     t = time.time()
     if model_type == 'SVC':
-        # Use grid search over a hyperparameter space.
-        param_dist = {'C': [0.5, 0.8, 1.0],
-                      'kernel': ['linear', 'rbf']}
-        model = GridSearchCV(SVC(), param_dist, n_jobs=8)
+        model = LinearSVC()
         model.fit(X_train, y_train)
     elif model_type == 'Tree':
         # Use randomized search over a hyperparameter space.

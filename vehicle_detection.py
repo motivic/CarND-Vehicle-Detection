@@ -6,13 +6,14 @@ from collections import deque
 from functools import partial
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from moviepy.editor import VideoFileClip
 import numpy as np
 import pickle
 from scipy.ndimage.measurements import label
 
 from feature_extraction import bin_spatial, color_hist, hog_features
-from train_model import train_model
+
 
 @click.command()
 @click.option('--model_pickle', default='test.pkl',
@@ -29,49 +30,71 @@ def vehicle_detection(model_pickle, video, image, output_file):
     if video == None:
         img = mpimg.imread(image)
         windows = []
-        for s in [0.8, 0.9, 1, 1.2, 1.5, 1.8]:
+        for s in [0.8, 1, 1.5]:
             windows.extend(find_cars(img, clf=clf, X_scaler=X_scaler,
                                      x_start_stop=(0, 1280),
                                      y_start_stop=(400, 656),
+                                     color_space='YCrCb',
                                      scale=s))
         img_boxes = draw_boxes(img, windows)
         plt.imshow(img_boxes)
-        plt.show()
+        plt.savefig(output_file)
     # Track vehicle in a video.
     else:
         clip = VideoFileClip(video)
-        heatmap = Heatmap(n_frame_avg_over=5, threshold=10)
+        heatmap = Heatmap(n_frame_avg_over=3, threshold=10)
         func = partial(process_frame, clf=clf,
-                       X_scaler=X_scaler, heatmap=heatmap)
+                       X_scaler=X_scaler, heatmap=heatmap, show_all=True)
         clip_w_boxes = clip.fl_image(func)
         clip_w_boxes.write_videofile(output_file, audio=False)
+
 
 def process_frame(img,
                   clf,
                   X_scaler,
-                  heatmap):
+                  heatmap,
+                  show_all=False):
     """ A helper function used to detect cars over multiple frames in a video.
 
     Args:
         img: The frame image.
         clf: The model for identifying vehicles.
         X_scaler: The feature scaler.
+        heatmap: A heatmap object to generate heatmap and label.
+        show_all: Wether to include the heatmap and label or not
 
     Returns:
         The image with cars drawn.
     """
     windows = []
-    for s in [0.8, 1, 1.2, 1.5, 2, 2.5]:
+    for s in [0.8, 1, 1.5]:
         windows.extend(find_cars(img, clf=clf, X_scaler=X_scaler,
                                  x_start_stop=(0, 1280),
                                  y_start_stop=(400, 656),
+                                 color_space='YCrCb',
                                  scale=s))
     img_boxes = heatmap.draw_label_boxes(img, windows)
-    return img_boxes
+    if not show_all:
+        return img_boxes
+    else:
+        plt.figure(figsize=(20, 12))
+        gs = gridspec.GridSpec(2, 2, wspace=0.05, hspace=0)
+        ax = [plt.subplot(gs[i]) for i in range(4)]
+        ax[0].imshow(img)
+        ax[0].axis('off')
+        ax[1].imshow(heatmap.heatmap, cmap='hot')
+        ax[1].axis('off')
+        ax[2].imshow(heatmap.labels[0], cmap='gray')
+        ax[2].axis('off')
+        ax[3].imshow(img_boxes)
+        ax[3].axis('off')
+        plt.savefig('show_all_tmp.jpg')
+        return mpimg.imread('show_all_tmp.jpg')
+
 
 class Heatmap:
 
-    def __init__(self, n_frame_avg_over=5, threshold=1):
+    def __init__(self, n_frame_avg_over=1, threshold=1):
         self._n_frame_avg_over = n_frame_avg_over
         self._threshold = threshold
         self._frames = []
@@ -87,20 +110,21 @@ class Heatmap:
         Returns:
             The image with boxes drawn around cars.
         """
+        image = np.copy(img)
         self._windows_queue.append(windows)
-        self.heatmap = np.zeros_like(img[:,:,0]).astype(np.float)
+        self.heatmap = np.zeros_like(image[:,:,0]).astype(np.float)
         for bbox_list in self._windows_queue:
             for box in bbox_list:
                 self.heatmap[box[0][1]:box[1][1],
                              box[0][0]:box[1][0]] += 1
         # Apply threshold
         self.heatmap[self.heatmap < self._threshold] = 0
-        labels = label(self.heatmap)
+        self.labels = label(self.heatmap)
 
         # Iterate through all detected cars
-        for car_number in range(1, labels[1]+1):
+        for car_number in range(1, self.labels[1]+1):
             # Find pixels with each car_number label value
-            nonzero = (labels[0] == car_number).nonzero()
+            nonzero = (self.labels[0] == car_number).nonzero()
             # Identify x and y values of those pixels
             nonzeroy = np.array(nonzero[0])
             nonzerox = np.array(nonzero[1])
@@ -108,9 +132,10 @@ class Heatmap:
             bbox = ((np.min(nonzerox), np.min(nonzeroy)),
                     (np.max(nonzerox), np.max(nonzeroy)))
             # Draw the box on the image
-            cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+            cv2.rectangle(image, bbox[0], bbox[1], (0,0,255), 6)
         # Return the image
-        return img
+        return image
+
 
 def draw_boxes(img, windows):
     """ Draw windows on the image.
@@ -126,6 +151,7 @@ def draw_boxes(img, windows):
     for window in windows:
         cv2.rectangle(image, window[0], window[1], (0, 0, 255), 6)
     return image
+
 
 def find_cars(img,
               clf,
@@ -160,25 +186,19 @@ def find_cars(img,
         where the model identified as images of cars.
     """
     windows = []
-    img = img.astype(np.float32) / 255
-
     img_tosearch = img[y_start_stop[0]:y_start_stop[1],
                        x_start_stop[0]:x_start_stop[1], :]
-    ctrans_tosearch = img_tosearch
     if scale != 1:
         imshape = img_tosearch.shape
-        ctrans_tosearch = cv2.resize(img_tosearch,
-                                     (np.int(imshape[1]/scale),
-                                      np.int(imshape[0]/scale)))
-
+        img_tosearch = cv2.resize(img_tosearch, (np.int(imshape[1]/scale),
+                                                 np.int(imshape[0]/scale)))
+    ctrans_tosearch = cv2.cvtColor(img_tosearch, cv2.COLOR_RGB2YCrCb)
     ch1 = ctrans_tosearch[:, :, 0]
     ch2 = ctrans_tosearch[:, :, 1]
     ch3 = ctrans_tosearch[:, :, 2]
-
     # Define blocks and steps as above
     nxblocks = (ch1.shape[1] // pix_per_cell) - 1
     nyblocks = (ch1.shape[0] // pix_per_cell) - 1
-    nfeat_per_block = orient * cell_per_block ** 2
     # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
     window = 64
     nblocks_per_window = (window // pix_per_cell) - 1
@@ -210,8 +230,8 @@ def find_cars(img,
             ytop = ypos * pix_per_cell
 
             # Extract the image patch
-            subimg = cv2.resize(ctrans_tosearch[ytop:ytop + window,
-                                                xleft:xleft + window],
+            subimg = cv2.resize(img_tosearch[ytop:ytop + window,
+                                             xleft:xleft + window],
                                 (64, 64))
             # Get color features
             spatial_features = bin_spatial(subimg, color_space=color_space,
@@ -221,7 +241,6 @@ def find_cars(img,
             # Scale features and make a prediction
             test_features = X_scaler.transform(np.hstack(
                 (spatial_features, hist_features, hog_feats)).reshape(1, -1))
-            # test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))
             test_prediction = clf.predict(test_features)
 
             if test_prediction == 1:

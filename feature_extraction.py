@@ -8,6 +8,7 @@ import numpy as np
 from os import cpu_count
 from skimage.feature import hog
 
+
 def extract_features(imgs,
                      color_space='RGB',
                      spatial_size=(32, 32),
@@ -54,6 +55,7 @@ def extract_features(imgs,
     features = pool.map(process_img, (img.as_posix() for img in imgs))
     return features
 
+
 def single_img_features(image_file,
                         color_space='RGB',
                         spatial_size=(32, 32),
@@ -98,23 +100,25 @@ def single_img_features(image_file,
         hist_features = color_hist(image, nbins=hist_bins)
         image_features.append(hist_features)
     if hog_feat:
+        new_img = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
         if hog_channel == 'ALL':
             hog_ft = []
-            for channel in range(image.shape[2]):
-                hog_ft.extend(hog_features(image[:, :, channel],
+            for channel in range(new_img.shape[2]):
+                hog_ft.extend(hog_features(new_img[:, :, channel],
                                            orient=orient,
                                            pix_per_cell=pix_per_cell,
                                            cell_per_blk=cell_per_block,
                                            vis=False))
             hog_ft = np.ravel(hog_ft)
         else:
-            hog_ft = hog_features(image[:, :, hog_channel],
+            hog_ft = hog_features(new_img[:, :, hog_channel],
                                   orient=orient,
                                   pix_per_cell=pix_per_cell,
                                   cell_per_blk=cell_per_block,
                                   vis=False)
         image_features.append(hog_ft)
     return np.concatenate(image_features)
+
 
 def color_hist(img, nbins=32, bins_range=(0, 256)):
     """ Compute the histogram of the RGB channels separately.
@@ -132,6 +136,7 @@ def color_hist(img, nbins=32, bins_range=(0, 256)):
     bhist = np.histogram(img[:,:,2], bins=nbins, range=bins_range)
     hist_features = np.concatenate((rhist[0], ghist[0], bhist[0]))
     return hist_features
+
 
 def bin_spatial(img, color_space='RGB', size=(32, 32)):
     """ Compute the color histogram features.
@@ -152,6 +157,7 @@ def bin_spatial(img, color_space='RGB', size=(32, 32)):
                                                format(cs=color_space)))
     features = cv2.resize(feature_image, size).ravel()
     return features
+
 
 def hog_features(img,
                  orient,
