@@ -48,7 +48,7 @@ You're reading it!
 
 ####1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
-The code for this step is in the file `feature_extraction.py`, [lines 156-192](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/feature_extraction.py#L156-L191).
+The code for this step is in the file `feature_extraction.py`, [lines 162-198](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/feature_extraction.py#L162-L198).
 The function `hog_features` accepts an input image and HOG parameters (`orientation`, `pix_per_cell`, and `cell_per_blk`),
 then calls the `hog` function from OpenCV and returns the HOG features.
 
