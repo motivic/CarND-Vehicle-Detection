@@ -78,7 +78,7 @@ instead focused on training a good model on these features, which we explain in 
 
 I used color histograms on the RGB colorspace, spatial bins on the YGrGb space, and HOG on all three channels of the YGrGb space as the features.
 
-I started with a simple linear SVM (`train_model.py`, [lines 125-127](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/train_model.py#L125-127))
+I started with a simple linear SVM (`train_model.py`, [lines 125-127](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/train_model.py#L125-L127))
 and got over 99% accuracy when evaluated on the hold-out test set. When using the model to identify cars in the
 test images, there are still some mis-identifications. So I tried to train two more complex models using hyperparameter search. One of these is a 
 grid search on the parameter space of a SVM. This again gave a test set accuracy over 99%, but it turned out to be impractical as using the model 
