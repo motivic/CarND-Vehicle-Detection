@@ -78,14 +78,14 @@ instead focused on training a good model on these features, which we explain in 
 
 I used color histograms on the RGB colorspace, spatial bins on the YGrGb space, and HOG on all three channels of the YGrGb space as the features.
 
-I started with a simple linear SVM (`train_model.py`, [lines 125-127](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/train_model.py#L126-127))
+I started with a simple linear SVM (`train_model.py`, [lines 125-127](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/train_model.py#L125-127))
 and got over 99% accuracy when evaluated on the hold-out test set. When using the model to identify cars in the
 test images, there are still some mis-identifications. So I tried to train two more complex models using hyperparameter search. One of these is a 
 grid search on the parameter space of a SVM. This again gave a test set accuracy over 99%, but it turned out to be impractical as using the model 
 to process the `project_video.mp4` showed a progress estimate of around 36 hours.
 
 The other more complex model I trained is a Gradient Boosted Tree model with randomized hyperparameter search. This is also in the file `train_model.py`,
-[lines 128-133](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/train_model.py#L121-L128). This model took quite a while (around 1 hour) to 
+[lines 128-137](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/train_model.py#L128-L137). This model took quite a while (around 1 hour) to 
 train even when I had used all 8 cores on my machine to train it. This model also had good accuracy (over 99%) on the test set. However, processing 
 `project_video.mp4` using this GBM model took over 6 hours, and the result is comparable to that by the simple linear SVM. So in the end I chose the linear
 SVM as the model of choice.
@@ -100,7 +100,7 @@ generation is in the function `find_cars` in `vehicle_detection.py`, [lines 158-
 We followed essentially the HOG sub-sampling window search from the course, but using only one color channel for the HOG features. 
 
 Because the featuers need to be of the same size, instead of scaling the windows, I scaled the base image (or video frame) by (1/(0.8), 1, 1/(1.5)),
-and applied the window search algorithm. These scales are chosen by trial and error. See lines [71](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L71) 
+and applied the window search algorithm. These scales are chosen by trial and error. See lines [70](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L70) 
 and [193-196](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L193-L196) of `vehicle_detection.py`.
 
 Instead of defining an overlap, we followed the HOG sub-sampling window search from the course and specified the number of cells to step over
