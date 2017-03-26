@@ -1,3 +1,6 @@
+# Vehicle Detection
+[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
+
 ##Writeup
 
 ---
@@ -55,7 +58,7 @@ images. Here is an example of one of each of the `vehicle` and `non-vehicle` cla
 I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`). 
 I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+Here is an example using the `YCrCb` color space and HOG parameters of `orientations=9`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
 
 ![alt text][image2]
 
@@ -93,7 +96,7 @@ I applied sliding window search to detect vehicles, but for a limited range of p
 generation is in the function `find_cars` in `vehicle_detection.py`, [lines 156-255](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L156-L255).
 We followed essentially the HOG sub-sampling window search from the course, but using only one color channel for the HOG features. 
 
-Because the featuers need to be of the same size, instead of scaling the windows, I scaled the base image (or video frame) by (1/(0.9), 1/(1.5)),
+Because the featuers need to be of the same size, instead of scaling the windows, I scaled the base image (or video frame) by (1/(0.8), 1, 1/(1.5)),
 and applied the window search algorithm. These scales are chosen by trial and error. See lines [71](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L71) 
 and [191-194](https://github.com/motivic/CarND-Vehicle-Detection/blob/master/vehicle_detection.py#L191-L194) of `vehicle_detection.py`.
 
@@ -173,4 +176,3 @@ processing techniques.
 To make the pipeline more robust, we can train the vehicle classification model to be able to classify vehicles in all conditions. In the end, the better we can 
 correctly classify images of vehicles as such, the better the whole pipeline will work. Of course, adding addtional sensor data beyond the front camera video will 
 help a lot. 
-
